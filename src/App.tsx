@@ -1,31 +1,110 @@
 import "./App.css";
 import { Toaster } from "react-hot-toast";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import { Dashboard } from "./pages/dashboard";
 import { Auth } from "./pages/auth";
 import { FinancialRecordsProvider } from "./contexts/financial-record-context";
-import { SignedIn, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
+
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isSignedIn, isLoaded } = useUser();
+
+  // Show loading while Clerk determines auth state
+  if (!isLoaded) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  // Redirect to auth if not signed in
+  if (!isSignedIn) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Public Route Component (redirects to dashboard if already signed in)
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isSignedIn, isLoaded } = useUser();
+
+  // Show loading while Clerk determines auth state
+  if (!isLoaded) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  // Redirect to dashboard if already signed in
+  if (isSignedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 function App() {
   return (
     <Router>
       <div className="app-container">
         <div className="navbar">
-          <Link to="/"> Dashboard</Link>
           <SignedIn>
-            <UserButton />
+            <Link to="/"> Dashboard</Link>
+          </SignedIn>
+          <SignedOut>
+            <Link to="/auth"> Sign In</Link>
+          </SignedOut>
+          <SignedIn>
+            <UserButton 
+              afterSignOutUrl="/auth"
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8",
+                }
+              }}
+            />
           </SignedIn>
         </div>
+        
         <Routes>
           <Route
             path="/"
             element={
-              <FinancialRecordsProvider>
-                <Dashboard />
-              </FinancialRecordsProvider>
+              <ProtectedRoute>
+                <FinancialRecordsProvider>
+                  <Dashboard />
+                </FinancialRecordsProvider>
+              </ProtectedRoute>
             }
           />
-          <Route path="/auth" element={<Auth />} />
+          <Route 
+            path="/auth" 
+            element={
+              <PublicRoute>
+                <Auth />
+              </PublicRoute>
+            } 
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
         <Toaster
