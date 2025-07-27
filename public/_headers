@@ -1,0 +1,25 @@
+# Create this file at: public/_headers
+
+# JavaScript files
+/assets/*.js
+  Content-Type: application/javascript
+
+# CSS files  
+/assets/*.css
+  Content-Type: text/css
+
+# ES modules
+*.mjs
+  Content-Type: application/javascript
+
+# TypeScript compiled files
+*.ts.js
+  Content-Type: application/javascript
+
+# Vite generated files
+/assets/index-*.js
+  Content-Type: application/javascript
+
+# General assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
