@@ -34,6 +34,7 @@ const ChartModal: React.FC<ChartModalProps> = ({ isOpen, onClose, chartType, rec
       return {
         incomeVsExpenses: [],
         categoryBreakdown: [],
+        expenseCategoryBreakdown: [], // New: expenses only
         totalIncome: 0,
         totalExpenses: 0
       };
@@ -72,9 +73,26 @@ const ChartModal: React.FC<ChartModalProps> = ({ isOpen, onClose, chartType, rec
       }))
       .sort((a, b) => b.value - a.value);
 
+    // Expense category breakdown (excluding salary)
+    const expenseCategoryMap = new Map<string, number>();
+    expenses.forEach(record => {
+      const category = record.category || 'Other';
+      const currentAmount = expenseCategoryMap.get(category) || 0;
+      expenseCategoryMap.set(category, currentAmount + Math.abs(record.amount));
+    });
+
+    const expenseCategoryBreakdown = Array.from(expenseCategoryMap.entries())
+      .map(([category, amount]) => ({
+        name: category,
+        value: amount,
+        fill: COLORS[Array.from(expenseCategoryMap.keys()).indexOf(category) % COLORS.length]
+      }))
+      .sort((a, b) => b.value - a.value);
+
     return {
       incomeVsExpenses,
       categoryBreakdown,
+      expenseCategoryBreakdown,
       totalIncome,
       totalExpenses
     };
@@ -110,7 +128,7 @@ const ChartModal: React.FC<ChartModalProps> = ({ isOpen, onClose, chartType, rec
       case 'income-expenses':
         return 'Income vs Expenses';
       case 'category-pie':
-        return 'Spending by Category';
+        return 'Expense Categories'; // Updated title to reflect expenses only
       case 'category-bar':
         return 'Category Breakdown';
       default:
@@ -153,11 +171,21 @@ const ChartModal: React.FC<ChartModalProps> = ({ isOpen, onClose, chartType, rec
         );
 
       case 'category-pie':
+        // Check if there are any expense categories
+        if (chartData.expenseCategoryBreakdown.length === 0) {
+          return (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+              <h3>No expense data available</h3>
+              <p>Add some expense records to see category breakdown!</p>
+            </div>
+          );
+        }
+        
         return (
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
-                data={chartData.categoryBreakdown}
+                data={chartData.expenseCategoryBreakdown}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -168,7 +196,7 @@ const ChartModal: React.FC<ChartModalProps> = ({ isOpen, onClose, chartType, rec
                 fill="#8884d8"
                 dataKey="value"
               >
-                {chartData.categoryBreakdown.map((entry, index) => (
+                {chartData.expenseCategoryBreakdown.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Pie>
